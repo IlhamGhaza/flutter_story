@@ -1,13 +1,14 @@
+// lib/presentation/screens/home/presentation/add_story_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart'; // Import GoRouter
 
 import '../../../../core/state/api_state.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/story_provider.dart';
 import '../../../widget/loading_shimmer.dart';
-
 
 class AddStoryPage extends StatefulWidget {
   const AddStoryPage({super.key});
@@ -52,7 +53,7 @@ class _AddStoryPageState extends State<AddStoryPage> {
   }
 
   void _showImageSourceDialog() {
-    final l10n = AppLocalizations.of(context)!;
+    // final l10n = AppLocalizations.of(context)!; // Tidak digunakan di sini
 
     showModalBottomSheet(
       context: context,
@@ -103,7 +104,11 @@ class _AddStoryPageState extends State<AddStoryPage> {
           icon: const Icon(Icons.close),
           onPressed: () {
             context.read<StoryProvider>().resetAddStoryState();
-            Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/'); // Fallback ke home jika tidak bisa pop
+            }
           },
         ),
       ),
@@ -178,6 +183,27 @@ class _AddStoryPageState extends State<AddStoryPage> {
               const SizedBox(height: 32),
               Consumer<StoryProvider>(
                 builder: (context, storyProvider, child) {
+                  // Listener untuk navigasi setelah upload berhasil
+                  if (storyProvider.addStoryState is ApiSuccess) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.storyUploadSuccess),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                          ),
+                        );
+                        storyProvider.resetAddStoryState(); // Reset state dulu
+                        if (context.canPop()) {
+                          context.pop(); // Baru pop
+                        } else {
+                          context.go('/'); // Fallback
+                        }
+                      }
+                    });
+                  }
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -229,28 +255,7 @@ class _AddStoryPageState extends State<AddStoryPage> {
                           ),
                         ),
                       ],
-                      if (storyProvider.addStoryState is ApiSuccess) ...[
-                        if (storyProvider.addStoryState is ApiSuccess)
-                          Builder(builder: (context) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted &&
-                                  storyProvider.addStoryState is ApiSuccess) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.storyUploadSuccess),
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                );
-                                context
-                                    .read<StoryProvider>()
-                                    .resetAddStoryState();
-                                Navigator.of(context).pop();
-                              }
-                            });
-                            return const SizedBox.shrink();
-                          }),
-                      ],
+                      // Hapus navigasi eksplisit di sini, sudah ditangani di atas
                     ],
                   );
                 },

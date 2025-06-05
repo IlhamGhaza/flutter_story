@@ -1,8 +1,12 @@
+// lib/presentation/screens/auth/register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart'; // Import GoRouter
+
 import '../../../core/state/api_state.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../routes/app_router.dart'; // Import AppRouter
 import '../../widget/loading_shimmer.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -30,17 +34,17 @@ class _RegisterPageState extends State<RegisterPage> {
   void _register() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthProvider>().register(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+            _nameController.text.trim(),
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.register),
@@ -48,7 +52,11 @@ class _RegisterPageState extends State<RegisterPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             context.read<AuthProvider>().resetStates();
-            Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRouter.loginPath); // Fallback jika tidak bisa pop
+            }
           },
         ),
       ),
@@ -62,7 +70,8 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Hero(
-                  tag: 'app-logo',
+                  tag:
+                      'app-logo-register', // Tag Hero yang berbeda jika diperlukan
                   child: Icon(
                     Icons.person_add,
                     size: 80,
@@ -73,8 +82,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 Text(
                   'Create Account',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -106,7 +115,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -121,7 +131,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
@@ -206,7 +218,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           ElevatedButton(
                             onPressed: () {
                               context.read<AuthProvider>().resetStates();
-                              Navigator.of(context).pop();
+                              context.go(AppRouter
+                                  .loginPath); // Kembali ke login setelah registrasi sukses
                             },
                             child: Text(l10n.loginButton),
                           ),

@@ -1,12 +1,15 @@
+// lib/presentation/screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart'; // Import GoRouter
 
 import '../../../core/state/api_state.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../routes/app_router.dart'; // Import AppRouter
 import '../../widget/loading_shimmer.dart';
-import '../home/presentation/home_screen.dart';
-import 'register_screen.dart';
+// import '../home/presentation/home_screen.dart'; // Tidak perlu lagi import screen langsung
+// import 'register_screen.dart'; // Tidak perlu lagi import screen langsung
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,6 +33,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() {
     if (_formKey.currentState!.validate()) {
+      // authProvider akan di-listen oleh GoRouter redirect
       context.read<AuthProvider>().login(
             _emailController.text.trim(),
             _passwordController.text,
@@ -52,7 +56,8 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Hero(
-                  tag: 'app-logo',
+                  tag:
+                      'app-logo', // Pastikan Hero tag ini unik atau dikelola dengan baik jika splash juga menggunakannya
                   child: Icon(
                     Icons.auto_stories,
                     size: 80,
@@ -128,6 +133,17 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
+                    // Listener untuk navigasi setelah login berhasil
+                    // Ini akan ditangani oleh GoRouter redirect berdasarkan perubahan authProvider.isLoggedIn
+                    if (authProvider.loginState is ApiSuccess &&
+                        authProvider.isLoggedIn) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          context.go(AppRouter.homePath);
+                        }
+                      });
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -167,27 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ],
-                        if (authProvider.loginState is ApiSuccess) ...[
-                          Builder(builder: (context) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted && authProvider.loginState is ApiSuccess) {
-                                Navigator.of(context).pushReplacement(
-                                  PageRouteBuilder(
-                                    pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        const HomePage(),
-                                    transitionsBuilder: (context, animation,
-                                        secondaryAnimation, child) {
-                                      return FadeTransition(
-                                          opacity: animation, child: child);
-                                    },
-                                  ),
-                                );
-                              }
-                            });
-                            return const SizedBox.shrink();
-                          }),
-                        ],
+                        // Hapus navigasi eksplisit di sini, redirect GoRouter akan menangani
                       ],
                     );
                   },
@@ -195,23 +191,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).push(
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            const RegisterPage(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          return SlideTransition(
-                            position: animation.drive(
-                              Tween(
-                                  begin: const Offset(1.0, 0.0),
-                                  end: Offset.zero),
-                            ),
-                            child: child,
-                          );
-                        },
-                      ),
-                    );
+                    context.push(AppRouter
+                        .registerPath); // Menggunakan context.push untuk halaman register
                   },
                   child: RichText(
                     text: TextSpan(

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/state/api_state.dart';
+import '../../../../data/models/story_model.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/story_provider.dart';
 import '../../../providers/theme_provider.dart';
-import '../../../widget/error_widget.dart';
+import '../../../routes/app_router.dart';
+import '../../../widget/error_widget.dart' as custom_error_widget;
 import '../../../widget/loading_shimmer.dart';
-import '../../auth/login_screen.dart';
-import '../widget/story_card.dart';
-import 'add_story_screen.dart';
-import 'story_detail_screen.dart';
 
+import '../widget/story_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,41 +26,37 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<StoryProvider>().getStories();
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.isLoggedIn && authProvider.currentUser?.token != null) {
+        context.read<StoryProvider>().getStories();
+      }
     });
   }
 
   Future<void> _refreshStories() async {
-    await context.read<StoryProvider>().getStories();
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isLoggedIn && authProvider.currentUser?.token != null) {
+      await context.read<StoryProvider>().getStories();
+    }
   }
 
   void _logout() {
     showDialog(
       context: context,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context)!;
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           title: Text(l10n.logout),
           content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
                 context.read<AuthProvider>().logout();
-                Navigator.of(context).pushReplacement(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const LoginPage(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                  ),
-                );
               },
               child: Text(l10n.logout),
             ),
@@ -72,7 +69,7 @@ class _HomePageState extends State<HomePage> {
   void _showLanguageDialog() {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Select Language'),
           content: Column(
@@ -83,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                 leading: const Text('🇺🇸'),
                 onTap: () {
                   context.read<ThemeProvider>().setLanguage('en');
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                 },
               ),
               ListTile(
@@ -91,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                 leading: const Text('🇮🇩'),
                 onTap: () {
                   context.read<ThemeProvider>().setLanguage('id');
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                 },
               ),
             ],
@@ -148,27 +145,13 @@ class _HomePageState extends State<HomePage> {
         builder: (context, storyProvider, child) {
           return RefreshIndicator(
             onRefresh: _refreshStories,
-            child: _buildStoryList(storyProvider),
+            child: _buildStoryList(storyProvider, l10n),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  const AddStoryPage(),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return SlideTransition(
-                  position: animation.drive(
-                    Tween(begin: const Offset(0.0, 1.0), end: Offset.zero),
-                  ),
-                  child: child,
-                );
-              },
-            ),
-          );
+          context.push(AppRouter.addStoryPath);
         },
         icon: const Icon(Icons.add),
         label: Text(l10n.addStory),
@@ -176,75 +159,72 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildStoryList(StoryProvider storyProvider) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _buildStoryList(StoryProvider storyProvider, AppLocalizations l10n) {
+    final storiesState = storyProvider.storiesState;
 
-    switch (storyProvider.storiesState) {
-      case ApiLoading():
-        return ListView.builder(
-          itemCount: 5,
-          itemBuilder: (context, index) {
-            return LoadingShimmer(
-              isLoading: true,
-              child: const StoryCardShimmer(),
-            );
-          },
-        );
-
-      case ApiSuccess():
-        final stories = storyProvider.stories;
-        if (stories.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.auto_stories_outlined,
-                  size: 64,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.noStoriesFound,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-              ],
-            ),
+    if (storiesState is ApiLoading) {
+      return ListView.builder(
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          return const LoadingShimmer(
+            isLoading: true,
+            child: StoryCardShimmer(),
           );
-        }
-
-        return ListView.builder(
-          itemCount: stories.length,
-          itemBuilder: (context, index) {
-            final story = stories[index];
-            return StoryCard(
-              story: story,
-              onTap: () {
-                Navigator.of(context).push(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        StoryDetailPage(story: story),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                  ),
-                );
-              },
-            );
-          },
-        );
-
-      case ApiError():
-        return CustomErrorWidget(
-          message: (storyProvider.storiesState as ApiError).message,
-          onRetry: _refreshStories,
-        );
-
-      default:
-        return const SizedBox.shrink();
+        },
+      );
     }
+
+    if (storiesState is ApiSuccess<List<Story>>) {
+      final stories = storiesState.data;
+      if (stories.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_stories_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.noStoriesFound,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return ListView.builder(
+        itemCount: stories.length,
+        itemBuilder: (context, index) {
+          final story = stories[index];
+          return StoryCard(
+            story: story,
+            onTap: () {
+              context.push(
+                Uri(
+                  path: AppRouter.storyDetailPath
+                      .replaceFirst(':storyId', story.id),
+                ).toString(),
+                extra: story,
+              );
+            },
+          );
+        },
+      );
+    }
+
+    if (storiesState is ApiError) {
+      return custom_error_widget.CustomErrorWidget(
+        message:  (storyProvider.storiesState as ApiError).message,
+        onRetry: _refreshStories,
+      );
+    }
+
+    return const Center(child: Text("Welcome! Pull to refresh stories."));
   }
 }

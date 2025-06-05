@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../home/presentation/home_screen.dart';
-import 'login_screen.dart';
+import '../../routes/app_router.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
@@ -48,31 +48,19 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initializeApp() async {
     final authProvider = context.read<AuthProvider>();
-    final themeProvider = context.read<ThemeProvider>();
 
-    // Load settings
-    await themeProvider.loadSettings();
-
-    // Start animation
     _animationController.forward();
 
-    // Check auth status
     await authProvider.checkAuthStatus();
 
-    // Wait for animation to complete
-    await Future.delayed(const Duration(milliseconds: 2500));
+    await Future.delayed(const Duration(milliseconds: 2000));
 
-    // Navigate to appropriate page
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              authProvider.isLoggedIn ? const HomePage() : const LoginPage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
+      if (authProvider.isLoggedIn) {
+        context.go(AppRouter.homePath);
+      } else {
+        context.go(AppRouter.loginPath);
+      }
     }
   }
 

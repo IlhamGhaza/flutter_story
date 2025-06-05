@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_story/presentation/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -7,9 +8,6 @@ import 'l10n/app_localizations.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/story_provider.dart';
 import 'presentation/providers/theme_provider.dart';
-import 'presentation/screens/auth/login_screen.dart';
-import 'presentation/screens/auth/splash_scren.dart';
-import 'presentation/screens/home/presentation/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,11 +22,11 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StoryProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..loadSettings()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          return MaterialApp(
+          return MaterialApp.router(
             title: 'Flutter Story',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
@@ -46,7 +44,7 @@ class MyApp extends StatelessWidget {
               Locale('id'),
             ],
             locale: Locale(themeProvider.languageCode),
-            home: const SplashScreen(),
+            routerConfig: AppRouter.router(context),
           );
         },
       ),
