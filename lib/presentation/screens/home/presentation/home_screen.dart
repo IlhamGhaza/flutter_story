@@ -50,13 +50,13 @@ class _HomePageState extends State<HomePage> {
           content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () => dialogContext.pop(),
               child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop();
                 context.read<AuthProvider>().logout();
+                dialogContext.pop(); // Pop dialog after logout action
               },
               child: Text(l10n.logout),
             ),
@@ -80,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                 leading: const Text('🇺🇸'),
                 onTap: () {
                   context.read<ThemeProvider>().setLanguage('en');
-                  Navigator.of(dialogContext).pop();
+                  dialogContext.pop();
                 },
               ),
               ListTile(
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                 leading: const Text('🇮🇩'),
                 onTap: () {
                   context.read<ThemeProvider>().setLanguage('id');
-                  Navigator.of(dialogContext).pop();
+                  dialogContext.pop();
                 },
               ),
             ],

@@ -65,7 +65,7 @@ class _AddStoryPageState extends State<AddStoryPage> {
                 leading: const Icon(Icons.camera_alt),
                 title: const Text('Camera'),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  context.pop();
                   _pickImage(ImageSource.camera);
                 },
               ),
@@ -73,7 +73,7 @@ class _AddStoryPageState extends State<AddStoryPage> {
                 leading: const Icon(Icons.photo_library),
                 title: const Text('Gallery'),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  context.pop();
                   _pickImage(ImageSource.gallery);
                 },
               ),
